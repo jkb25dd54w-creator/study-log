@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Study Log</title>
+<style>
+  :root {
+    --bg: #0d1526;
+    --card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --text: #e8edf7;
+    --muted: #a8b3c7;
+    --faint: #5b6579;
+    --gold: #fcd34d;
+    --ink: #0d1526;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 16px 48px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .serif { font-family: Georgia, "Times New Roman", serif; }
+
+  .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .eyebrow { font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 3px; color: var(--gold); margin-bottom: 4px; }
+  .title { font-family: Georgia, serif; font-size: 30px; font-weight: 700; line-height: 1.1; }
+  .countdown { text-align: right; background: rgba(252,211,77,0.08); border: 1px solid rgba(252,211,77,0.25); border-radius: 12px; padding: 8px 14px; }
+  .count-num { font-family: ui-monospace, Menlo, monospace; font-size: 26px; color: var(--gold); line-height: 1; font-weight: 500; }
+  .count-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .card-label { font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+  .log-inputs { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input[type=number] {
+    width: 76px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+    color: var(--text); font-size: 16px; font-family: ui-monospace, Menlo, monospace;
+  }
+  input:focus, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button { cursor: pointer; font-family: inherit; }
+  .add-btn {
+    padding: 10px 18px; border-radius: 10px; border: none;
+    background: var(--gold); color: var(--ink); font-weight: 600; font-size: 14px;
+  }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .chip-label { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin-top: 14px; }
+  .combo-preview { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .combo-preview span { color: var(--gold); font-weight: 600; }
+  .chip { padding: 6px 12px; border-radius: 999px; border: none; font-size: 13px; background: rgba(255,255,255,0.06); color: var(--muted); }
+  .chip.active { color: var(--ink); font-weight: 600; }
+
+  .totals { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .big-num { font-family: Georgia, serif; font-size: 36px; font-weight: 700; color: var(--gold); line-height: 1; }
+  .big-num.small { font-size: 28px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .tabs { display: flex; gap: 6px; margin: 18px 0 10px; }
+  .tab { padding: 8px 20px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; background: rgba(255,255,255,0.06); color: var(--muted); }
+  .tab.active { background: var(--gold); color: var(--ink); }
+
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 15px; }
+  .row:last-child { border-bottom: none; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .row .amt { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .del { border: none; background: transparent; color: var(--faint); font-size: 13px; padding: 2px 8px; }
+  .empty { color: var(--faint); font-size: 14px; padding: 8px 0; }
+  .logtime { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--faint); margin-left: 8px; }
+
+  .bars { display: flex; align-items: flex-end; gap: 8px; height: 140px; margin-top: 10px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end; }
+  .bar-val { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--text); white-space: nowrap; }
+  .bar { width: 100%; max-width: 40px; border-radius: 6px; background: rgba(252,211,77,0.45); }
+  .bar.today { background: var(--gold); }
+  .bar-day { font-size: 11px; color: var(--muted); }
+  .bar-day.today { color: var(--gold); }
+
+  .heat { display: flex; gap: 3px; margin-top: 12px; overflow-x: auto; padding-bottom: 6px; }
+  .heat-week { display: flex; flex-direction: column; gap: 3px; }
+  .heat-cell { width: 14px; height: 14px; border-radius: 3px; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+
+  .stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0 12px; }
+  .footer { text-align: center; color: var(--faint); font-size: 12px; margin: 16px 0 6px; font-family: ui-monospace, Menlo, monospace; }
+  .data-btns { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .data-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="eyebrow">STUDY LOG</div>
+    <div class="title">Every session counts</div>
+    <div class="sub" id="todayDate" style="margin-top:6px"></div>
+  </div>
+  <div class="countdown">
+    <div class="count-num" id="daysLeft">0</div>
+    <div class="count-label">days to Sept 11</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-label">Log a session</div>
+  <div class="log-inputs">
+    <input type="number" id="hrs" min="0" placeholder="hrs" inputmode="numeric">
+    <input type="number" id="mins" min="0" max="59" placeholder="min" inputmode="numeric">
+    <button class="add-btn" id="addBtn" onclick="addSession()">Add session</button>
+  </div>
+  <div class="chip-label">Subject</div>
+  <div class="chips" id="subjectChips"></div>
+  <div class="chip-label">Type</div>
+  <div class="chips" id="activityChips"></div>
+  <div class="combo-preview">Logging: <span id="comboPreview">Bio/Biochem</span></div>
+</div>
+
+<div class="card totals">
+  <div>
+    <div class="card-label">Today</div>
+    <div class="big-num" id="todayTotal">0m</div>
+    <div class="sub" id="todayCount">0 sessions logged</div>
+  </div>
+  <div style="text-align:right">
+    <div class="card-label">Last 7 days</div>
+    <div class="big-num small" id="weekTotal">0m</div>
+    <div class="sub" id="weekAvg">avg 0m per day</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-view="day" onclick="setView('day')">Day</button>
+  <button class="tab" data-view="week" onclick="setView('week')">Week</button>
+  <button class="tab" data-view="month" onclick="setView('month')">Month</button>
+</div>
+
+<div id="viewArea"></div>
+
+<div class="card" id="subjectCard" style="display:none">
+  <div class="card-label" id="subjectLabel">By subject</div>
+  <div class="stack" id="subjectStack"></div>
+  <div id="subjectRows"></div>
+  <div id="typeRows"></div>
+</div>
+
+<div class="footer" id="footerCount">0 total sessions saved</div>
+<div class="data-btns">
+  <button class="data-btn" onclick="exportData()">Export backup</button>
+  <button class="data-btn" onclick="document.getElementById('importFile').click()">Import backup</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+
+<script>
+const STORE_KEY = "study-log-v1";
+const SUBJECTS = ["Bio/Biochem","Chem","Physics","Chem/Phys","CARS","Psych/Soc","Other"];
+const ACTIVITIES = ["Content","UWorld","AAMC","Anki","Recall"];
+const COLORS = {
+  "Bio/Biochem":"#5eead4","Chem":"#93c5fd","Physics":"#a5b4fc","Chem/Phys":"#7dd3fc",
+  "CARS":"#fca5a5","Psych/Soc":"#c4b5fd","Other":"#a8b3c7","Unspecified":"#64748b",
+  // legacy keys so old entries keep their color
+  "UWorld":"#fcd34d","Recall":"#f9a8d4"
+};
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+// ---- session field helpers (handle old + new data) ----
+const LEGACY_ACTS = ["UWorld","Recall","Anki"];
+function sBase(s){
+  if (s.subjectBase) return s.subjectBase;
+  const old = s.subject || "Other";
+  return LEGACY_ACTS.includes(old) ? "Unspecified" : old;
+}
+function sAct(s){
+  if (s.activity) return s.activity;
+  const old = s.subject || "";
+  return LEGACY_ACTS.includes(old) ? old : "Content";
+}
+function sLabel(s){
+  const a = sAct(s);
+  const b = sBase(s);
+  if (b === "Unspecified") return a;
+  return (a && a !== "Content") ? b + " " + a : b;
+}
+function sColor(s){ return COLORS[sBase(s)] || "#a8b3c7"; }
+
+let sessions = [];
+let subject = "Bio/Biochem";
+let activity = "Content";
+let view = "day";
+
+try {
+  sessions = JSON.parse(localStorage.getItem(STORE_KEY) || "null")
+    || JSON.parse(localStorage.getItem(STORE_KEY + "-mirror") || "[]");
+} catch(e) { sessions = []; }
+
+function save() {
+  try {
+    const json = JSON.stringify(sessions);
+    localStorage.setItem(STORE_KEY, json);
+    // second copy under a backup key, in case the main one is ever cleared
+    localStorage.setItem(STORE_KEY + "-mirror", json);
+  } catch(e) {
+    alert("Warning: your browser blocked saving. Use Export backup to keep your data safe.");
+  }
+}
+
+function dateKey(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+  return y + "-" + m + "-" + day;
+}
+function todayKey() { return dateKey(new Date()); }
+function fmt(mins) {
+  if (!mins) return "0m";
+  const h = Math.floor(mins/60), m = mins % 60;
+  if (h && m) return h + "h " + m + "m";
+  if (h) return h + "h";
+  return m + "m";
+}
+function clockTime(s) {
+  const t = s.loggedAt ? new Date(s.loggedAt) : new Date(s.id);
+  if (isNaN(t)) return "";
+  return t.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function addSession() {
+  const h = parseInt(document.getElementById("hrs").value || "0", 10);
+  const m = parseInt(document.getElementById("mins").value || "0", 10);
+  const total = h*60 + m;
+  if (!total || total < 0) return;
+  sessions.unshift({ id: Date.now(), date: todayKey(), minutes: total, subjectBase: subject, activity: activity, loggedAt: new Date().toISOString() });
+  save();
+  document.getElementById("hrs").value = "";
+  document.getElementById("mins").value = "";
+  const btn = document.getElementById("addBtn");
+  btn.textContent = "Saved";
+  setTimeout(() => btn.textContent = "Add session", 1400);
+  render();
+}
+
+function removeSession(id) {
+  sessions = sessions.filter(s => s.id !== id);
+  save();
+  render();
+}
+
+function setSubject(s) { subject = s; renderChips(); }
+function setActivity(a) { activity = a; renderChips(); }
+function setView(v) {
+  view = v;
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === v));
+  render();
+}
+
+function renderChips() {
+  const subEl = document.getElementById("subjectChips");
+  subEl.innerHTML = "";
+  SUBJECTS.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "chip" + (s === subject ? " active" : "");
+    if (s === subject) b.style.background = COLORS[s];
+    b.textContent = s;
+    b.onclick = () => setSubject(s);
+    subEl.appendChild(b);
+  });
+  const actEl = document.getElementById("activityChips");
+  actEl.innerHTML = "";
+  ACTIVITIES.forEach(a => {
+    const b = document.createElement("button");
+    b.className = "chip" + (a === activity ? " active" : "");
+    if (a === activity) { b.style.background = "#fcd34d"; }
+    b.textContent = a;
+    b.onclick = () => setActivity(a);
+    actEl.appendChild(b);
+  });
+  const prev = document.getElementById("comboPreview");
+  if (prev) prev.textContent = (activity && activity !== "Content") ? subject + " " + activity : subject;
+}
+
+function byDateTotals() {
+  const t = {};
+  sessions.forEach(s => { t[s.date] = (t[s.date] || 0) + s.minutes; });
+  return t;
+}
+
+function last7Days(totals) {
+  const arr = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    arr.push({ key: dateKey(d), label: DAYS[d.getDay()], mins: totals[dateKey(d)] || 0, isToday: i === 0 });
+  }
+  return arr;
+}
+
+function esc(str) { const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
+
+function render() {
+  const totals = byDateTotals();
+  const tKey = todayKey();
+  const todayMins = totals[tKey] || 0;
+  const todaySessions = sessions.filter(s => s.date === tKey);
+  const week = last7Days(totals);
+  const weekMins = week.reduce((a,b) => a + b.mins, 0);
+
+  document.getElementById("todayDate").textContent =
+    new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const _now = new Date();
+  const _todayMid = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
+  const _testMid = new Date(2026, 8, 11);
+  document.getElementById("daysLeft").textContent =
+    Math.max(0, Math.round((_testMid - _todayMid) / 86400000));
+  document.getElementById("todayTotal").textContent = fmt(todayMins);
+  document.getElementById("todayCount").textContent =
+    todaySessions.length + " session" + (todaySessions.length === 1 ? "" : "s") + " logged";
+  document.getElementById("weekTotal").textContent = fmt(weekMins);
+  document.getElementById("weekAvg").textContent = "avg " + fmt(Math.round(weekMins/7)) + " per day";
+  document.getElementById("footerCount").textContent = sessions.length + " total sessions saved";
+
+  const area = document.getElementById("viewArea");
+
+  if (view === "day") {
+    let html = '<div class="card"><div class="card-label">Today\'s sessions</div>';
+    if (!todaySessions.length) html += '<div class="empty">Nothing logged yet. Add your first session above.</div>';
+    todaySessions.forEach(s => {
+      html += '<div class="row"><span class="dot" style="background:' + sColor(s) + '"></span>'
+        + '<span style="flex:1">' + esc(sLabel(s)) + '<span class="logtime">' + clockTime(s) + '</span></span>'
+        + '<span class="amt">' + fmt(s.minutes) + '</span>'
+        + '<button class="del" onclick="removeSession(' + s.id + ')" aria-label="Delete">✕</button></div>';
+    });
+    html += '</div>';
+
+    // grouped history of previous dates
+    const prevDates = [...new Set(sessions.filter(s => s.date !== tKey).map(s => s.date))].sort().reverse();
+    html += '<div class="card"><div class="card-label">Session history</div>';
+    if (!prevDates.length) html += '<div class="empty">No previous sessions yet.</div>';
+    prevDates.slice(0, 30).forEach(dk => {
+      const d = new Date(dk + "T12:00:00");
+      const label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+      const daySessions = sessions.filter(s => s.date === dk);
+      const dayTotal = daySessions.reduce((a,b) => a + b.minutes, 0);
+      html += '<div class="row" style="border-bottom:none;padding-top:12px">'
+        + '<span style="flex:1;font-weight:600;color:var(--gold)">' + label + '</span>'
+        + '<span class="amt" style="color:var(--gold)">' + fmt(dayTotal) + '</span></div>';
+      daySessions.forEach(s => {
+        html += '<div class="row" style="padding-left:8px"><span class="dot" style="background:' + sColor(s) + '"></span>'
+          + '<span style="flex:1;font-size:14px">' + esc(sLabel(s)) + '<span class="logtime">' + clockTime(s) + '</span></span>'
+          + '<span class="amt">' + fmt(s.minutes) + '</span>'
+          + '<button class="del" onclick="removeSession(' + s.id + ')" aria-label="Delete">✕</button></div>';
+      });
+    });
+    if (prevDates.length > 30) html += '<div class="empty">Showing the 30 most recent days.</div>';
+    html += '</div>';
+    area.innerHTML = html;
+  }
+
+  if (view === "week") {
+    const maxBar = Math.max(60, ...week.map(d => d.mins));
+    let html = '<div class="card"><div class="card-label">Last 7 days</div><div class="bars">';
+    week.forEach(d => {
+      const h = Math.max(4, Math.round((d.mins / maxBar) * 90));
+      html += '<div class="bar-col">'
+        + '<div class="bar-val">' + (d.mins ? fmt(d.mins) : "") + '</div>'
+        + '<div class="bar' + (d.isToday ? " today" : "") + '" style="height:' + h + 'px"></div>'
+        + '<div class="bar-day' + (d.isToday ? " today" : "") + '">' + d.label + '</div></div>';
+    });
+    html += '</div></div>';
+    area.innerHTML = html;
+  }
+
+  if (view === "month") {
+    // 12 week heatmap aligned to Sunday
+    const start = new Date(); start.setDate(start.getDate() - 83);
+    while (start.getDay() !== 0) start.setDate(start.getDate() - 1);
+    const cells = [];
+    const cur = new Date(start), now = new Date();
+    while (cur <= now) { cells.push({ key: dateKey(cur), mins: totals[dateKey(cur)] || 0 }); cur.setDate(cur.getDate() + 1); }
+    const weeks = Math.ceil(cells.length / 7);
+    const maxDay = Math.max(60, ...cells.map(c => c.mins));
+
+    let html = '<div class="card"><div class="card-label">Last 12 weeks</div><div class="heat">';
+    for (let w = 0; w < weeks; w++) {
+      html += '<div class="heat-week">';
+      for (let d = 0; d < 7; d++) {
+        const c = cells[w*7 + d];
+        if (!c) { html += '<div class="heat-cell" style="background:transparent"></div>'; continue; }
+        const bg = c.mins ? "rgba(252,211,77," + (0.25 + Math.min(1, c.mins/maxDay) * 0.75).toFixed(2) + ")" : "rgba(255,255,255,0.06)";
+        html += '<div class="heat-cell" title="' + c.key + ': ' + fmt(c.mins) + '" style="background:' + bg + '"></div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+
+    const monthTotals = {};
+    sessions.forEach(s => { const mk = s.date.slice(0,7); monthTotals[mk] = (monthTotals[mk] || 0) + s.minutes; });
+    const keys = Object.keys(monthTotals).sort().reverse();
+    html += '<div style="margin-top:18px"><div class="card-label">Monthly totals</div>';
+    if (!keys.length) html += '<div class="empty">No data yet.</div>';
+    keys.forEach(mk => {
+      const d = new Date(mk + "-01T12:00:00");
+      const label = d.toLocaleString("en-US", { month: "long", year: "numeric" });
+      html += '<div class="row"><span style="flex:1">' + label + '</span><span class="amt">' + fmt(monthTotals[mk]) + '</span></div>';
+    });
+    html += '</div></div>';
+    area.innerHTML = html;
+  }
+
+  // subject breakdown
+  const filter = view === "day"
+    ? s => s.date === tKey
+    : view === "week"
+      ? s => week.some(d => d.key === s.date)
+      : () => true;
+  const inRange = sessions.filter(filter);
+  const subj = {};
+  inRange.forEach(s => { const b = sBase(s); subj[b] = (subj[b] || 0) + s.minutes; });
+  const sorted = Object.entries(subj).sort((a,b) => b[1] - a[1]);
+  const sum = sorted.reduce((a,b) => a + b[1], 0);
+  const card = document.getElementById("subjectCard");
+  if (!sum) { card.style.display = "none"; }
+  else {
+    card.style.display = "block";
+    const rangeTxt = view === "day" ? "today" : view === "week" ? "last 7 days" : "all time";
+    document.getElementById("subjectLabel").textContent = "By subject (" + rangeTxt + ")";
+    document.getElementById("subjectStack").innerHTML = sorted.map(([s,m]) =>
+      '<div style="width:' + (m/sum*100) + '%;background:' + (COLORS[s] || "#a8b3c7") + '"></div>').join("");
+    document.getElementById("subjectRows").innerHTML = sorted.map(([s,m]) =>
+      '<div class="row" style="border-bottom:none;padding:4px 0">'
+      + '<span class="dot" style="background:' + (COLORS[s] || "#a8b3c7") + '"></span>'
+      + '<span style="flex:1;font-size:14px">' + esc(s) + '</span>'
+      + '<span class="amt">' + fmt(m) + '</span></div>').join("");
+
+    // by type breakdown
+    const act = {};
+    inRange.forEach(s => { const a = sAct(s) || "Content"; act[a] = (act[a] || 0) + s.minutes; });
+    const actSorted = Object.entries(act).sort((a,b) => b[1] - a[1]);
+    document.getElementById("typeRows").innerHTML =
+      '<div class="card-label" style="margin-top:16px">By type (' + rangeTxt + ')</div>'
+      + actSorted.map(([a,m]) =>
+        '<div class="row" style="border-bottom:none;padding:4px 0">'
+        + '<span style="flex:1;font-size:14px">' + esc(a) + '</span>'
+        + '<span class="amt">' + fmt(m) + '</span></div>').join("");
+  }
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "study-log-backup-" + todayKey() + ".json";
+  a.click();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data)) { sessions = data; save(); render(); alert("Backup imported: " + data.length + " sessions."); }
+      else alert("That file does not look like a valid backup.");
+    } catch(err) { alert("Could not read that file."); }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+}
+
+renderChips();
+render();
+
+// gentle weekly backup nudge
+(function backupNudge(){
+  if (!sessions.length) return;
+  const last = parseInt(localStorage.getItem(STORE_KEY + "-lastBackupNudge") || "0", 10);
+  const week = 7 * 86400000;
+  if (Date.now() - last > week) {
+    localStorage.setItem(STORE_KEY + "-lastBackupNudge", String(Date.now()));
+    setTimeout(() => {
+      if (confirm("Weekly reminder: save a backup of your study log?\n\nTap OK to download a backup file now.")) exportData();
+    }, 800);
+  }
+})();
+</script>
+</body>
+</html>
